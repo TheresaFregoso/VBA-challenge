@@ -1,0 +1,163 @@
+# This code can be copied and pasted into a VBA module in excell to run.
+
+Sub CalculateTickerStats()
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim tickerRange As Range
+    Dim uniqueTickers As Collection
+    Dim ticker As Variant
+    Dim outputCol As Long
+    Dim outputRow As Long
+    Dim summaryCol As Long
+    Dim firstPrice As Double
+    Dim lastPrice As Double
+    Dim changeValue As Double
+    Dim percentChange As Double
+    Dim totalStockVolume As Double
+    Dim firstPriceCell As Range
+    Dim lastPriceCell As Range
+    
+    Dim greatestIncreaseTicker As String
+    Dim greatestDecreaseTicker As String
+    Dim greatestVolumeTicker As String
+    Dim greatestIncreaseValue As Double
+    Dim greatestDecreaseValue As Double
+    Dim greatestVolumeValue As Double
+    
+   ' Loop through each worksheet in the workbook
+    For Each ws In ThisWorkbook.Worksheets
+    
+    ' Find the last row in column A with data
+    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    
+    ' Get unique ticker names
+    Set uniqueTickers = New Collection
+    On Error Resume Next
+    For Each tickerRange In ws.Range("A2:A" & lastRow)
+        uniqueTickers.Add tickerRange.Value, CStr(tickerRange.Value)
+    Next tickerRange
+    On Error GoTo 0
+    
+    outputCol = 9 ' Column I
+    outputRow = 2 ' Start output from row 2
+    summaryCol = outputCol + 6 ' Two columns over from the output table
+    
+    ' Output headers for the new table
+    With ws
+        .Cells(1, outputCol).Value = "Ticker"
+        .Cells(1, outputCol + 1).Value = "Quarterly Change"
+        .Cells(1, outputCol + 2).Value = "Percent Change"
+        .Cells(1, outputCol + 3).Value = "Total Stock Volume"
+    End With
+    
+    ' Initialize variables for summary
+    greatestIncreaseValue = -1 ' Start with a low value
+    greatestDecreaseValue = 1  ' Start with a high value
+    greatestVolumeValue = 0
+    
+    ' Loop through each ticker
+    For Each ticker In uniqueTickers
+        With ws
+            ' Filter data for the current ticker
+            .Range("A1:G" & lastRow).AutoFilter Field:=1, Criteria1:=ticker
+            
+            ' Initialize firstPrice and lastPrice to zero
+            firstPrice = 0
+            lastPrice = 0
+            
+            ' Get first row price from column C
+            On Error Resume Next
+            Set firstPriceCell = .Range("C2:C" & lastRow).SpecialCells(xlCellTypeVisible).Cells(1, 1)
+            If Not firstPriceCell Is Nothing Then
+                If IsNumeric(firstPriceCell.Value) Then
+                    firstPrice = firstPriceCell.Value
+                End If
+            End If
+            On Error GoTo 0
+            
+            ' Get last row price from column F
+            On Error Resume Next
+            Set lastPriceCell = .Range("F2:F" & lastRow).SpecialCells(xlCellTypeVisible).Cells(.Range("F2:F" & lastRow).SpecialCells(xlCellTypeVisible).Cells.Count, 1)
+            If Not lastPriceCell Is Nothing Then
+                If IsNumeric(lastPriceCell.Value) Then
+                    lastPrice = lastPriceCell.Value
+                End If
+            End If
+            On Error GoTo 0
+            
+            ' Initialize changeValue and percentChange to 0
+            changeValue = 0
+            percentChange = 0
+            
+            ' Calculate change value and percent change if firstPrice is not zero
+            If firstPrice <> 0 Then
+                changeValue = lastPrice - firstPrice
+                percentChange = changeValue / firstPrice
+            End If
+            
+            ' Calculate total stock volume
+            totalStockVolume = Application.WorksheetFunction.Sum(.Range("G2:G" & lastRow).SpecialCells(xlCellTypeVisible))
+            
+            ' Output the results
+            .Cells(outputRow, outputCol).Value = ticker
+            .Cells(outputRow, outputCol + 1).Value = changeValue
+            .Cells(outputRow, outputCol + 2).Value = percentChange
+            .Cells(outputRow, outputCol + 2).NumberFormat = "0.00%" ' Format as percent with two decimal places
+            .Cells(outputRow, outputCol + 3).Value = totalStockVolume
+            
+            ' Update summary values
+            If percentChange > greatestIncreaseValue Then
+                greatestIncreaseValue = percentChange
+                greatestIncreaseTicker = ticker
+            End If
+            
+            If percentChange < greatestDecreaseValue Then
+                greatestDecreaseValue = percentChange
+                greatestDecreaseTicker = ticker
+            End If
+            
+            If totalStockVolume > greatestVolumeValue Then
+                greatestVolumeValue = totalStockVolume
+                greatestVolumeTicker = ticker
+            End If
+            
+            outputRow = outputRow + 1
+        End With
+    Next ticker
+    
+    ' Apply conditional formatting to the "Change Value" column
+    With ws.Range(ws.Cells(2, outputCol + 1), ws.Cells(outputRow - 1, outputCol + 1))
+        .FormatConditions.Delete ' Remove any existing conditional formats
+        .FormatConditions.Add Type:=xlCellValue, Operator:=xlGreater, Formula1:="0"
+        .FormatConditions(1).Interior.Color = RGB(0, 255, 0) ' Green for positive values
+        .FormatConditions.Add Type:=xlCellValue, Operator:=xlLess, Formula1:="0"
+        .FormatConditions(2).Interior.Color = RGB(255, 0, 0) ' Red for negative values
+    End With
+    
+    ' Output summary table
+    With ws
+        .Cells(1, summaryCol + 1).Value = "Ticker"
+        .Cells(1, summaryCol + 2).Value = "Value"
+        .Cells(2, summaryCol).Value = "Greatest % Increase"
+        .Cells(2, summaryCol + 1).Value = greatestIncreaseTicker
+        .Cells(2, summaryCol + 2).Value = greatestIncreaseValue
+        .Cells(2, summaryCol + 2).NumberFormat = "0.00%" ' Format as percent with two decimal places
+        
+        .Cells(3, summaryCol).Value = "Greatest % Decrease"
+        .Cells(3, summaryCol + 1).Value = greatestDecreaseTicker
+        .Cells(3, summaryCol + 2).Value = greatestDecreaseValue
+        .Cells(3, summaryCol + 2).NumberFormat = "0.00%" ' Format as percent with two decimal places
+        
+        .Cells(4, summaryCol).Value = "Greatest Total Volume"
+        .Cells(4, summaryCol + 1).Value = greatestVolumeTicker
+        .Cells(4, summaryCol + 2).Value = greatestVolumeValue
+    End With
+    
+    ' Remove filter
+    ws.AutoFilterMode = False
+ 
+ Next ws
+    
+End Sub
+
+
