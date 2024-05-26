@@ -6,6 +6,7 @@ showing the initial analysis columns in a new table.
 Next to the analysis table is a summary table with the best and worst stocks for the year,
 followed by the stock with the greatest stock volume.
 
-The VBA code to perform this analysis is included.
+The VBA code to perform this analysis is included as a text file.
+The excel spreadsheet used for this assignment has been included.
 
 Help for this challenge was provided by Xpert Learning Assistant and ChatGPT
