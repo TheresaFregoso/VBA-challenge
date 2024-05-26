@@ -7,3 +7,5 @@ Next to the analysis table is a summary table with the best and worst stocks for
 followed by the stock with the greatest stock volume.
 
 The VBA code to perform this analysis is included.
+
+Help for this challenge was provided by Xpert Learning Assistant and ChatGPT
